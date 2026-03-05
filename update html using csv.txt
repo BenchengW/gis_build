@@ -1,0 +1,41 @@
+How the HTML parses the CSV
+Step 1 — At build time (Python):
+The Python script reads your companies.csv file, converts every byte into a base64 string (~98,000 characters), and physically pastes that string into the HTML file as a JavaScript variable:
+jsvar CSV_B64 = "aWQsbmFtZSxwb3N0YWwscHJvdmluY2U...";  // ← your entire CSV baked in
+Step 2 — At runtime (Browser):
+When you open the HTML, JavaScript runs atob(CSV_B64) which decodes the base64 back into the original CSV text, then a custom parser splits it by newlines and commas (handling quoted fields) to build 100 JavaScript objects — one per company.
+
+⚠️ No — updating the CSV won't update the HTML
+The CSV is baked into the HTML at the moment the file was generated. The HTML file and the CSV file are now completely disconnected — you could delete the CSV and the HTML would still work fine.
+To update the HTML with new CSV data, you need to re-run the build script. I can make that very easy for you:Created a file, ran a command, read a fileCreated a file, ran a command, read a filePython rebuild script that injects updated CSV into the HTMLrebuild.pyCopy template to outputs so user has both piecesScriptPresented 4 filesDoneHere's the full picture of how it works and how to update it:
+
+How it works (visually)
+canada_companies.csv  ──[Python encodes to base64]──▶  canada_postal_gis.html
+                                                              ↓
+                                                     var CSV_B64 = "aWQsbmFt..."
+                                                              ↓
+                                                     browser atob() decodes it
+                                                              ↓
+                                                     100 JS company objects
+The HTML has no connection to the CSV file after it's built — the data is frozen inside it.
+
+To update the HTML when you change the CSV
+You now have 4 files. Keep them in the same folder:
+FilePurposecanada_companies.csvEdit this — add/remove/change companiescanada_gis_template.htmlThe HTML shell with %%CSVDATA%% placeholderrebuild.pyRun this to regenerate the HTMLcanada_postal_gis.htmlThe final output — open in browser
+Workflow:
+
+Edit canada_companies.csv in Excel or any text editor
+Run python3 rebuild.py in that folder
+Open the refreshed canada_postal_gis.html — done
+
+The script also validates that required columns are present and tells you the company count, so you'll catch any CSV formatting errors immediately.RebuildPY DownloadCanada companiesTable · CSV DownloadCanada gis templateCode · HTML DownloadCanada postal gisCode · HTML DownloadDownload all
+
+
+
+
+
+
+
+
+What happens as records scale up
+RecordsCSV SizeHTML File SizeLoad TimeVerdict100 (current)74 KB162 KB<1s✅ Perfect5,000~3.5 MB~8 MB2–4s✅ Fine20,000~14 MB~30 MB8–15s⚠️ Sluggish50,000~35 MB~75 MB30–60s+❌ Very slow100,000~70 MB~150 MBOften crashes❌ Broken
